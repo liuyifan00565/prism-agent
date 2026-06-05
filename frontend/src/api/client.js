@@ -49,12 +49,23 @@ async function requestJson(url, options, retries = 3, retryDelayMs = 800) {
   throw lastError
 }
 
-export async function publishText(title, body, platforms, skipAdapt = false) {
+export async function publishText(title, body, platforms, skipAdapt = false, videoPath = null, videoFilename = null) {
   return requestJson(`${BASE}/publish/text`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title, body, platforms, skip_adapt: skipAdapt }),
+    body: JSON.stringify({
+      title, body, platforms,
+      skip_adapt: skipAdapt,
+      video_path: videoPath || null,
+      video_filename: videoFilename || null,
+    }),
   })
+}
+
+export async function uploadVideo(file) {
+  const fd = new FormData()
+  fd.append('file', file)
+  return requestJson(`${BASE}/upload/video`, { method: 'POST', body: fd })
 }
 
 export async function publishVoice(audioBlob) {

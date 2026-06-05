@@ -52,21 +52,40 @@ class DouyinAdapter(PlatformAdapter):
             raise Exception("douyin_session_expired")
 
         # 尝试切换到「图文」Tab（如果页面上有的话）
-        for tab_sel in [
-            'text=图文',
-            '[class*="tab"]:has-text("图文")',
-            '[class*="image-text"]',
-            'li:has-text("图文")',
-        ]:
-            tab = page.locator(tab_sel).first
-            if await tab.count() > 0:
-                try:
-                    await tab.wait_for(state="visible", timeout=3000)
-                    await tab.click()
-                    await asyncio.sleep(0.8)
-                    break
-                except Exception:
-                    continue
+        # 视频模式选择视频 Tab，图文模式选择图文 Tab
+        if self._has_video:
+            video_tab_sels = [
+                'text=上传视频',
+                '[class*="tab"]:has-text("视频")',
+                '[class*="upload-video"]',
+                'li:has-text("视频")',
+            ]
+            for tab_sel in video_tab_sels:
+                tab = page.locator(tab_sel).first
+                if await tab.count() > 0:
+                    try:
+                        await tab.wait_for(state="visible", timeout=3000)
+                        await tab.click()
+                        await asyncio.sleep(0.8)
+                        break
+                    except Exception:
+                        continue
+        else:
+            for tab_sel in [
+                'text=图文',
+                '[class*="tab"]:has-text("图文")',
+                '[class*="image-text"]',
+                'li:has-text("图文")',
+            ]:
+                tab = page.locator(tab_sel).first
+                if await tab.count() > 0:
+                    try:
+                        await tab.wait_for(state="visible", timeout=3000)
+                        await tab.click()
+                        await asyncio.sleep(0.8)
+                        break
+                    except Exception:
+                        continue
 
         # 等待编辑区加载
         try:
@@ -84,7 +103,23 @@ class DouyinAdapter(PlatformAdapter):
 
         await _shot("nav_editor_ready")
 
-    async def fill_content(self, page: Page, title: str, body: str, tags: list) -> None:
+    async def fill_content(self, page: Page, title: str, body: str, tags: list, video_path: str = None) -> None:
+        # ── 视频上传（如有）───────────────────────────────────
+        if video_path and self._has_video:
+            uploaded = await self.upload_video(page, video_path)
+            if uploaded:
+                # 等待视频处理完成
+                try:
+                    await page.wait_for_selector(
+                        '[class*="upload-success"], '
+                        '[class*="video-ready"], '
+                        '[class*="upload-done"]',
+                        timeout=300000,
+                    )
+                    await asyncio.sleep(2)
+                except Exception:
+                    pass
+
         # ── 填写标题 ──────────────────────────────────────────
         title_input = None
         for sel in [

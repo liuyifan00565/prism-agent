@@ -33,7 +33,7 @@ class ZhihuAdapter(PlatformAdapter):
                 raise Exception("zhihu_session_expired")
             raise Exception("zhihu_editor_not_found: 编辑器未能在20秒内加载，请检查网络或页面结构")
 
-    async def fill_content(self, page: Page, title: str, body: str, tags: list) -> None:
+    async def fill_content(self, page: Page, title: str, body: str, tags: list, video_path: str = None) -> None:
         # Fill title
         title_input = page.locator(
             '.WriteIndex-titleInput, '

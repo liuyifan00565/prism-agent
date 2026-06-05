@@ -19,7 +19,7 @@ import PublishModal         from './components/PublishModal'
 import { useAgent }         from './hooks/useAgent'
 import { useVoiceCreate }   from './hooks/useVoiceCreate'
 import { useAuth }          from './hooks/useAuth'
-import { getTask, publishPlatform, updateContent, refineContent } from './api/client'
+import { getTask, publishPlatform, updateContent, refineContent, uploadVideo } from './api/client'
 
 const ALL_PLATFORMS = ['wechat', 'zhihu', 'xiaohongshu', 'bilibili', 'csdn', 'weibo', 'douyin']
 const PNAMES = { wechat: '公众号', zhihu: '知乎', xiaohongshu: '小红书', bilibili: 'B站', csdn: 'CSDN', weibo: '微博', douyin: '抖音图文' }
@@ -212,6 +212,11 @@ export default function App() {
   const [polish,           setPolish]            = useState({ open: false, platform: null })
   const [uiLogs,           setUiLogs]            = useState([])
   const [selectedImages,   setSelectedImages]    = useState({})  // { platform: base64 } 用户选中的封面图
+  const [contentType,      setContentType]       = useState('text')  // 'text' | 'video'
+  const [videoFile,        setVideoFile]         = useState(null)    // File 对象
+  const [videoMeta,        setVideoMeta]         = useState(null)    // { name, sizeMB, duration }
+  const [videoPath,        setVideoPath]         = useState(null)    // 后端返回的服务端路径
+  const [videoUploading,   setVideoUploading]    = useState(false)
   const seenStatusRef = useRef({})
 
   const auth = useAuth()
@@ -278,9 +283,55 @@ export default function App() {
     seenStatusRef.current = {}; voiceCreate.reset()
     setActiveResultTab(null); setShowPublishModal(false)
     setSelectedImages({})
+    setVideoFile(null); setVideoMeta(null); setVideoPath(null)
   }
 
   function handleReset() { freshState(); reset() }
+
+  /* ── Video helpers ──────────────────────────────────────────────────────── */
+  async function handleVideoFileChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+
+    // Read duration via hidden video element
+    const url = URL.createObjectURL(file)
+    const duration = await new Promise(resolve => {
+      const v = document.createElement('video')
+      v.preload = 'metadata'
+      v.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(v.duration) }
+      v.onerror = () => { URL.revokeObjectURL(url); resolve(null) }
+      v.src = url
+    })
+
+    setVideoFile(file)
+    setVideoPath(null)   // 清除旧路径，等待新上传
+    setVideoMeta({
+      name: file.name,
+      sizeMB: (file.size / 1024 / 1024).toFixed(1),
+      duration: duration ? formatDuration(duration) : null,
+    })
+  }
+
+  function formatDuration(secs) {
+    const m = Math.floor(secs / 60)
+    const s = Math.floor(secs % 60)
+    return `${m}:${String(s).padStart(2, '0')}`
+  }
+
+  async function ensureVideoUploaded() {
+    if (!videoFile) return null
+    if (videoPath) return videoPath   // already uploaded
+    setVideoUploading(true)
+    try {
+      const res = await uploadVideo(videoFile)
+      if (res?.error) throw new Error(res.error)
+      setVideoPath(res.video_path)
+      return res.video_path
+    } finally {
+      setVideoUploading(false)
+    }
+  }
 
   function handleCardEdit(platform, field, value) {
     setLocalEdits(prev => ({ ...prev, [platform]: { ...(prev[platform] ?? {}), [field]: value } }))
@@ -293,7 +344,12 @@ export default function App() {
     if (!activeTitle && !activeBody) return
     freshState()
     try {
-      await submitText(activeTitle, activeBody, platforms)
+      let vpath = null, vname = null
+      if (contentType === 'video' && videoFile) {
+        vpath = await ensureVideoUploaded()
+        vname = videoFile.name
+      }
+      await submitText(activeTitle, activeBody, platforms, false, vpath, vname)
     } catch (e) {
       window.alert(e?.message || '提交失败，请检查后端是否正常启动')
     }

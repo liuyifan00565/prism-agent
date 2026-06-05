@@ -74,7 +74,7 @@ class WeiboAdapter(PlatformAdapter):
         await asyncio.sleep(0.5)
         await _shot("nav_editor_ready")
 
-    async def fill_content(self, page: Page, title: str, body: str, tags: list) -> None:
+    async def fill_content(self, page: Page, title: str, body: str, tags: list, video_path: str = None) -> None:
         # 微博没有独立标题，合并标题+正文
         full_text = f"{title}\n\n{body}" if title else body
         # 字数限制
@@ -101,6 +101,20 @@ class WeiboAdapter(PlatformAdapter):
         await page.keyboard.press("Control+a")
         await page.keyboard.type(full_text, delay=10)
         await asyncio.sleep(0.5)
+
+        # ── 视频上传（如有）───────────────────────────────────
+        if video_path and self._has_video:
+            video_btn = page.locator(
+                'button[title*="视频"], '
+                '[class*="video-upload"], '
+                '[class*="toolbar"] button:has-text("视频")'
+            )
+            if await video_btn.count() > 0:
+                await video_btn.first.click()
+                await asyncio.sleep(1)
+            # 通用 file input 上传
+            await self.upload_video(page, video_path)
+            await asyncio.sleep(2)
 
     async def submit(self, page: Page, assist_fn=None, **kwargs) -> None:
         import pathlib as _pl, datetime as _dt

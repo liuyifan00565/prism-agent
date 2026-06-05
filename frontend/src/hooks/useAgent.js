@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { publishText, publishVoice, getTask, confirmTask, applyFix } from '../api/client'
+import { publishText, publishVoice, getTask, confirmTask, applyFix, uploadVideo } from '../api/client'
 
 const LS_KEY = 'prism_last_task_id'
 
@@ -80,8 +80,8 @@ export function useAgent() {
     }
   }
 
-  async function submitText(title, body, platforms, skipAdapt = false) {
-    const res = await publishText(title, body, platforms, skipAdapt)
+  async function submitText(title, body, platforms, skipAdapt = false, videoPath = null, videoFilename = null) {
+    const res = await publishText(title, body, platforms, skipAdapt, videoPath, videoFilename)
     if (!res?.task_id) throw new Error(res?.error || '未获取到任务ID')
     _setTaskId(res.task_id)
     setTaskData(null)

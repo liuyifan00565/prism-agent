@@ -28,7 +28,12 @@ class BilibiliAdapter(PlatformAdapter):
             except Exception:
                 pass
 
-        await page.goto(EDITOR_URL, wait_until="domcontentloaded", timeout=30000)
+        # 有视频时使用视频投稿入口，否则使用图文专栏入口
+        target_url = (
+            "https://member.bilibili.com/platform/upload/video/frame"
+            if self._has_video else EDITOR_URL
+        )
+        await page.goto(target_url, wait_until="domcontentloaded", timeout=30000)
         try:
             await page.wait_for_load_state("load", timeout=15000)
         except Exception:
@@ -48,8 +53,27 @@ class BilibiliAdapter(PlatformAdapter):
             raise Exception("bilibili_editor_not_found: 编辑器未能在20秒内加载，请检查网络或页面结构")
         await _shot("nav_editor_ready")
 
+    supports_video = True
+
     async def fill_content(self, page: Page, title: str, body: str, tags: list, video_path: str = None) -> None:
         import pathlib as _pl, datetime as _dt
+
+        # ── 视频上传（如有）───────────────────────────────────
+        if video_path and self._has_video:
+            # B站视频投稿入口与图文不同，navigate_to_editor 已根据 _has_video 跳转
+            uploaded = await self.upload_video(page, video_path)
+            if uploaded:
+                # 等待上传进度完成（最多5分钟）
+                try:
+                    await page.wait_for_selector(
+                        '[class*="upload-progress"][style*="100%"], '
+                        '[class*="upload-success"], '
+                        '[class*="cover-upload"]',
+                        timeout=300000,
+                    )
+                    await asyncio.sleep(2)
+                except Exception:
+                    pass  # 继续填写其他字段
 
         # 探测页面可见输入元素（调试）
         try:

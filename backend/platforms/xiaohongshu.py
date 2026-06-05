@@ -99,7 +99,7 @@ class XiaohongshuAdapter(PlatformAdapter):
                 f"截图保存于 ~/.prism/debug/"
             )
 
-    async def fill_content(self, page: Page, title: str, body: str, tags: list) -> None:
+    async def fill_content(self, page: Page, title: str, body: str, tags: list, video_path: str = None) -> None:
         # navigate_to_editor 已完成：写长文 tab → 新的创作 → 编辑器加载好
         # 直接填写内容即可
 

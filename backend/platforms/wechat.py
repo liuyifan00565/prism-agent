@@ -35,7 +35,7 @@ class WechatAdapter(PlatformAdapter):
                 raise Exception("wechat_session_expired")
             raise Exception("wechat_editor_not_found: 编辑器未能在20秒内加载，请检查网络或页面结构")
 
-    async def fill_content(self, page: Page, title: str, body: str, tags: list) -> None:
+    async def fill_content(self, page: Page, title: str, body: str, tags: list, video_path: str = None) -> None:
         # Fill title field
         title_input = page.locator('#title, input[id*="title"]').first
         await title_input.click()
