@@ -1,0 +1,104 @@
+/* ── Prism Design System ─────────────────────────────────────────────────── */
+:root {
+  --bg-deep:       #0a0c10;
+  --bg-panel:      #111318;
+  --bg-card:       #181c24;
+  --bg-hover:      #1e2330;
+  --border:        rgba(99,120,255,0.15);
+  --border-active: rgba(99,120,255,0.4);
+  --accent:        #6378ff;
+  --accent2:       #a78bfa;
+  --accent-glow:   rgba(99,120,255,0.2);
+  --green:         #22d3a5;
+  --orange:        #f59e0b;
+  --red:           #f87171;
+  --text:          #e8eaf0;
+  --text-muted:    #6b7280;
+  --text-dim:      #374151;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-deep);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, textarea, select { font-family: inherit; }
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(99,120,255,0.18); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(99,120,255,0.35); }
+
+/* ── Animations ──────────────────────────────────────────────────────────── */
+@keyframes spin    { to { transform: rotate(360deg) } }
+@keyframes shimmer { 0%,100%{opacity:.3} 50%{opacity:.65} }
+@keyframes pulse   { 0%,100%{opacity:.3} 50%{opacity:1} }
+@keyframes glow-pulse { 0%,100%{box-shadow:0 0 8px var(--accent-glow)} 50%{box-shadow:0 0 20px rgba(99,120,255,0.4)} }
+@keyframes fadeUp  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes slideInRight { from{transform:translateX(100%)} to{transform:translateX(0)} }
+@keyframes modalIn { from{opacity:0;transform:scale(.97)} to{opacity:1;transform:scale(1)} }
+
+/* ── Shared button styles ────────────────────────────────────────────────── */
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  box-shadow: 0 0 20px var(--accent-glow);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s, box-shadow .15s;
+}
+.btn-primary:hover { opacity: .9; box-shadow: 0 0 28px rgba(99,120,255,0.5); }
+.btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-active);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+}
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+
+/* ── Input ───────────────────────────────────────────────────────────────── */
+.prism-input {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 10px 14px;
+  width: 100%;
+  transition: border-color .15s, box-shadow .15s;
+  outline: none;
+}
+.prism-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.prism-input::placeholder { color: var(--text-dim); }
+
+/* ── Card ────────────────────────────────────────────────────────────────── */
+.prism-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+}
+
+/* ── contenteditable placeholder ────────────────────────────────────────── */
+[contenteditable]:empty:before {
+  content: attr(data-ph);
+  color: var(--text-dim);
+  pointer-events: none;
+}
