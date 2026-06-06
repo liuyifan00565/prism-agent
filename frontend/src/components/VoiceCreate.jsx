@@ -6,25 +6,26 @@ function useSyncedRef(value) {
   const prev = useRef(undefined)
   useEffect(() => {
     if (!ref.current) return
-    if (value === prev.current) return          // 内容未变，跳过
+    if (value === prev.current) return
     prev.current = value
-    if (document.activeElement === ref.current) return // 用户正在编辑，跳过
+    if (document.activeElement === ref.current) return
     ref.current.textContent = value
   }, [value])
   return ref
 }
 
-/* ── small sub-components ─────────────────────────────────── */
-function Spinner({ size = 16, color = '#c8f55a' }) {
+/* ── Spinner ─────────────────────────────────────────────── */
+function Spinner({ size = 16 }) {
   return (
     <span style={{
       width: size, height: size, borderRadius: '50%', flexShrink: 0,
-      border: `2px solid ${color}`, borderTopColor: 'transparent',
+      border: '2px solid rgba(123,110,246,0.3)', borderTopColor: 'var(--accent)',
       display: 'inline-block', animation: 'spin 0.75s linear infinite',
     }} />
   )
 }
 
+/* ── RecordBtn ───────────────────────────────────────────── */
 function RecordBtn({ isRecording, onStart, onStop, size = 60 }) {
   return (
     <button
@@ -35,13 +36,20 @@ function RecordBtn({ isRecording, onStart, onStop, size = 60 }) {
       onTouchEnd={e => { e.preventDefault(); onStop() }}
       style={{
         width: size, height: size, borderRadius: '50%',
-        border: `2px solid ${isRecording ? '#ff6b6b' : '#c8f55a55'}`,
-        background: isRecording ? 'rgba(255,107,107,0.15)' : 'rgba(200,245,90,0.07)',
+        border: isRecording
+          ? '2px solid rgba(248,113,113,0.5)'
+          : '2px solid rgba(123,110,246,0.3)',
+        background: isRecording
+          ? 'rgba(248,113,113,0.12)'
+          : 'rgba(123,110,246,0.08)',
         fontSize: size * 0.38, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         userSelect: 'none', WebkitUserSelect: 'none',
-        boxShadow: isRecording ? '0 0 0 8px rgba(255,107,107,0.1)' : 'none',
-        transition: 'all 0.15s',
+        boxShadow: isRecording
+          ? '0 0 0 8px rgba(248,113,113,0.08), 0 0 24px rgba(248,113,113,0.2)'
+          : '0 0 20px rgba(123,110,246,0.15)',
+        transition: 'all 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+        animation: isRecording ? 'pulse-glow 1.5s ease-in-out infinite' : 'none',
       }}
     >
       {isRecording ? '■' : '🎙'}
@@ -69,16 +77,9 @@ export default function VoiceCreate({ vc }) {
   const titleRef = useSyncedRef(generatedTitle)
   const bodyRef  = useSyncedRef(generatedBody)
 
-  const hasContent  = !!(generatedTitle || generatedBody)
-  const isAnything  = isRecording || isGenerating || isRefineLoading
-
-  /* ── PHASE 1: recording / waiting ─────────────────────── */
-  const showRecord = !hasContent && !isGenerating
-
-  /* ── PHASE 2: loading ──────────────────────────────────── */
+  const hasContent = !!(generatedTitle || generatedBody)
+  const showRecord  = !hasContent && !isGenerating
   const showLoading = isGenerating && !hasContent
-
-  /* ── PHASE 3: content ──────────────────────────────────── */
   const showContent = hasContent
 
   return (
@@ -86,23 +87,31 @@ export default function VoiceCreate({ vc }) {
 
       {/* ── Record card ─────────────────────────────────── */}
       {showRecord && (
-        <div style={{
-          background: '#16161a',
-          border: `1px solid ${isRecording ? '#ff6b6b33' : '#1e1e24'}`,
-          borderRadius: 10, padding: '22px 16px',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+        <div className="glass-panel" style={{
+          padding: '22px 16px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+          border: isRecording ? '1px solid rgba(248,113,113,0.25)' : '1px solid var(--border)',
           transition: 'border-color 0.2s',
+          animation: 'fadeUp .3s ease',
         }}>
-          <p style={{ fontSize: 13, color: isRecording ? '#aaa' : '#555', margin: 0, textAlign: 'center' }}>
-            {isRecording ? '🎙 录音中，松开后自动生成内容...' : '🎤 按住按钮，说出你想写的内容'}
+          <p style={{
+            fontSize: 13, margin: 0, textAlign: 'center', lineHeight: 1.6,
+            color: isRecording ? 'var(--text-2)' : 'var(--text-3)',
+          }}>
+            {isRecording
+              ? <><span style={{ color: 'var(--red)' }}>🎙</span> 录音中，松开后自动生成内容...</>
+              : <>🎤 按住按钮，说出你想写的内容</>
+            }
           </p>
 
-          {/* realtime transcript */}
           {transcript && (
             <div style={{
-              width: '100%', fontSize: 12, color: '#888', lineHeight: 1.6,
+              width: '100%', fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6,
               maxHeight: 72, overflow: 'auto',
-              background: '#0d0d0f', borderRadius: 6, padding: '8px 10px',
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--r-sm)', padding: '8px 10px',
+              fontFamily: 'var(--font-display)',
             }}>
               {transcript}
             </div>
@@ -110,26 +119,32 @@ export default function VoiceCreate({ vc }) {
 
           <RecordBtn isRecording={isRecording} onStart={startRecording} onStop={stopRecording} />
 
-          <p style={{ fontSize: 11, color: '#333', margin: 0 }}>
-            {isRecording ? '● 松开即生成' : '○ 按住录音，松开生成'}
+          <p style={{ fontSize: 11, color: 'var(--text-3)', margin: 0 }}>
+            {isRecording
+              ? <span style={{ color: 'var(--red)', animation: 'pulse 1s infinite' }}>● 松开即生成</span>
+              : '○ 按住录音，松开生成'
+            }
           </p>
         </div>
       )}
 
       {/* ── Loading ─────────────────────────────────────── */}
       {showLoading && (
-        <div style={{
-          background: '#16161a', border: '1px solid #1e1e24',
-          borderRadius: 10, padding: '32px 16px',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+        <div className="glass-panel" style={{
+          padding: '32px 16px',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+          animation: 'fadeUp .3s ease',
         }}>
-          <Spinner size={20} />
-          <p style={{ fontSize: 13, color: '#c8f55a', margin: 0 }}>✦ 大模型理解中...</p>
+          <Spinner size={22} />
+          <p style={{ fontSize: 13, color: 'var(--accent)', margin: 0, fontWeight: 500 }}>
+            ✦ 大模型理解中...
+          </p>
           {transcript && (
             <p style={{
-              fontSize: 11, color: '#444', margin: 0,
-              maxWidth: '100%', overflow: 'hidden',
+              fontSize: 11, color: 'var(--text-3)', margin: 0,
+              maxWidth: '90%', overflow: 'hidden',
               textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              fontStyle: 'italic',
             }}>
               「{transcript.slice(0, 50)}{transcript.length > 50 ? '...' : ''}」
             </p>
@@ -140,24 +155,25 @@ export default function VoiceCreate({ vc }) {
       {/* ── Generated content ───────────────────────────── */}
       {showContent && (
         <>
-          {/* Refine loading overlay (reuses isRefineLoading) */}
+          {/* Refine loading */}
           {isRefineLoading && (
-            <div style={{
-              background: '#16161a', border: '1px solid #1e1e24',
-              borderRadius: 8, padding: '14px',
+            <div className="glass-panel" style={{
+              padding: '12px 14px',
               display: 'flex', alignItems: 'center', gap: 10,
+              border: '1px solid rgba(123,110,246,0.2)',
+              animation: 'fadeUp .2s ease',
             }}>
               <Spinner size={14} />
-              <span style={{ fontSize: 13, color: '#c8f55a' }}>✦ 优化中...</span>
+              <span style={{ fontSize: 13, color: 'var(--accent)' }}>✦ 优化中...</span>
             </div>
           )}
 
           {/* Title */}
-          <div style={{
-            background: '#16161a', border: '1px solid #1e1e24',
-            borderRadius: 8, padding: '10px 12px',
-          }}>
-            <div style={{ fontSize: 10, color: '#444', marginBottom: 6, letterSpacing: '0.5px' }}>
+          <div className="glass-panel" style={{ padding: '10px 12px' }}>
+            <div style={{
+              fontSize: 10, color: 'var(--text-3)', marginBottom: 6,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+            }}>
               标题
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
@@ -167,25 +183,40 @@ export default function VoiceCreate({ vc }) {
                 suppressContentEditableWarning
                 onInput={e => setGeneratedTitle(e.currentTarget.textContent)}
                 style={{
-                  flex: 1, fontSize: 14, fontWeight: 500, color: '#ddd',
-                  outline: 'none', minHeight: 20, lineHeight: 1.5,
-                  padding: '1px 3px', borderRadius: 3,
+                  flex: 1, fontSize: 14, fontWeight: 600,
+                  color: 'var(--text-1)',
+                  outline: 'none', minHeight: 22, lineHeight: 1.5,
+                  padding: '2px 4px', borderRadius: 4,
                   border: '1px solid transparent', cursor: 'text',
-                  transition: 'border-color 0.15s',
+                  transition: 'border-color 0.15s, background 0.15s',
+                  fontFamily: 'var(--font-display)',
                 }}
-                onFocus={e => (e.currentTarget.style.borderColor = '#2e2e38')}
-                onBlur={e  => (e.currentTarget.style.borderColor = 'transparent')}
+                onFocus={e => {
+                  e.currentTarget.style.borderColor = 'rgba(123,110,246,0.3)'
+                  e.currentTarget.style.background  = 'rgba(123,110,246,0.05)'
+                }}
+                onBlur={e => {
+                  e.currentTarget.style.borderColor = 'transparent'
+                  e.currentTarget.style.background  = 'transparent'
+                }}
               />
               <button
                 onClick={regenerateTitles}
                 style={{
-                  flexShrink: 0, padding: '4px 10px', fontSize: 11, borderRadius: 6,
-                  background: 'transparent', border: '1px solid #2a2a30',
-                  color: '#666', cursor: 'pointer', whiteSpace: 'nowrap',
-                  transition: 'color 0.15s, border-color 0.15s',
+                  flexShrink: 0, padding: '4px 10px', fontSize: 11,
+                  borderRadius: 'var(--r-sm)',
+                  background: 'transparent', border: '1px solid var(--border)',
+                  color: 'var(--text-3)', cursor: 'pointer', whiteSpace: 'nowrap',
+                  transition: 'all 0.15s',
                 }}
-                onMouseEnter={e => { e.currentTarget.style.color = '#c8f55a'; e.currentTarget.style.borderColor = '#c8f55a44' }}
-                onMouseLeave={e => { e.currentTarget.style.color = '#666';    e.currentTarget.style.borderColor = '#2a2a30' }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.color = 'var(--accent)'
+                  e.currentTarget.style.borderColor = 'rgba(123,110,246,0.3)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.color = 'var(--text-3)'
+                  e.currentTarget.style.borderColor = 'var(--border)'
+                }}
               >
                 换一个
               </button>
@@ -194,31 +225,42 @@ export default function VoiceCreate({ vc }) {
 
           {/* Title candidates */}
           {showTitleCandidates && (
-            <div style={{
-              background: '#0d0d0f', border: '1px solid #1e1e24',
-              borderRadius: 8, padding: '10px',
+            <div className="glass-panel" style={{
+              padding: 10,
               display: 'flex', flexDirection: 'column', gap: 6,
+              animation: 'fadeUp .2s ease',
             }}>
               {loadingCandidates ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '8px 0' }}>
-                  <Spinner size={12} color="#555" />
-                  <span style={{ fontSize: 12, color: '#555' }}>生成备选标题中...</span>
+                  <Spinner size={12} />
+                  <span style={{ fontSize: 12, color: 'var(--text-3)' }}>生成备选标题中...</span>
                 </div>
               ) : (
                 titleCandidates.map((t, i) => (
                   <div key={i} style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     gap: 8, padding: '7px 10px',
-                    background: '#16161a', borderRadius: 6, border: '1px solid #1e1e24',
-                  }}>
-                    <span style={{ fontSize: 13, color: '#ccc', flex: 1, lineHeight: 1.4 }}>{t}</span>
+                    background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--r-sm)',
+                    border: '1px solid var(--border)',
+                    animation: `fadeUp .15s ease ${i * 50}ms both`,
+                    transition: 'background .15s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
+                  >
+                    <span style={{ fontSize: 13, color: 'var(--text-2)', flex: 1, lineHeight: 1.4 }}>{t}</span>
                     <button
                       onClick={() => selectTitle(t)}
                       style={{
-                        flexShrink: 0, padding: '3px 10px', fontSize: 11, borderRadius: 5,
-                        background: 'rgba(200,245,90,0.08)', border: '1px solid #c8f55a33',
-                        color: '#c8f55a', cursor: 'pointer',
+                        flexShrink: 0, padding: '3px 10px', fontSize: 11,
+                        borderRadius: 'var(--r-sm)',
+                        background: 'rgba(123,110,246,0.1)',
+                        border: '1px solid rgba(123,110,246,0.3)',
+                        color: 'var(--accent)', cursor: 'pointer',
+                        transition: 'all .15s',
                       }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(123,110,246,0.18)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(123,110,246,0.1)')}
                     >
                       用这个
                     </button>
@@ -228,9 +270,12 @@ export default function VoiceCreate({ vc }) {
               <button
                 onClick={() => setShowTitleCandidates(false)}
                 style={{
-                  alignSelf: 'center', fontSize: 11, color: '#444',
+                  alignSelf: 'center', fontSize: 11, color: 'var(--text-3)',
                   background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 0',
+                  transition: 'color .15s',
                 }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-2)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-3)')}
               >
                 收起
               </button>
@@ -238,12 +283,11 @@ export default function VoiceCreate({ vc }) {
           )}
 
           {/* Body */}
-          <div style={{
-            background: '#16161a', border: '1px solid #1e1e24',
-            borderRadius: 8, padding: '10px 12px',
-            position: 'relative',
-          }}>
-            <div style={{ fontSize: 10, color: '#444', marginBottom: 6, letterSpacing: '0.5px' }}>
+          <div className="glass-panel" style={{ padding: '10px 12px', position: 'relative' }}>
+            <div style={{
+              fontSize: 10, color: 'var(--text-3)', marginBottom: 6,
+              letterSpacing: '0.08em', textTransform: 'uppercase',
+            }}>
               正文
             </div>
             <div
@@ -252,40 +296,49 @@ export default function VoiceCreate({ vc }) {
               suppressContentEditableWarning
               onInput={e => setGeneratedBody(e.currentTarget.textContent)}
               style={{
-                fontSize: 13, color: '#888', lineHeight: 1.75,
-                outline: 'none', minHeight: 120, maxHeight: 260,
+                fontSize: 13, color: 'var(--text-2)', lineHeight: 1.75,
+                outline: 'none', minHeight: 120, maxHeight: 280,
                 overflow: 'auto', whiteSpace: 'pre-wrap',
-                padding: '1px 3px', borderRadius: 3,
+                padding: '2px 4px', borderRadius: 4,
                 border: '1px solid transparent', cursor: 'text',
-                transition: 'border-color 0.15s',
+                transition: 'border-color 0.15s, background 0.15s',
+                fontFamily: 'var(--font-display)',
               }}
-              onFocus={e => (e.currentTarget.style.borderColor = '#2e2e38')}
-              onBlur={e  => (e.currentTarget.style.borderColor = 'transparent')}
+              onFocus={e => {
+                e.currentTarget.style.borderColor = 'rgba(123,110,246,0.3)'
+                e.currentTarget.style.background  = 'rgba(123,110,246,0.03)'
+              }}
+              onBlur={e => {
+                e.currentTarget.style.borderColor = 'transparent'
+                e.currentTarget.style.background  = 'transparent'
+              }}
             />
             <div style={{
               position: 'absolute', bottom: 8, right: 10,
-              fontSize: 10, color: '#2a2a30', pointerEvents: 'none',
+              fontSize: 10, color: 'var(--text-3)',
+              pointerEvents: 'none',
+              fontFamily: 'var(--font-mono)',
             }}>
               {generatedBody.length} 字
             </div>
           </div>
 
-          {/* Undo / refine desc row */}
+          {/* Undo / refine desc */}
           {(refineDesc || history.length > 0) && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 11, color: '#555', fontStyle: 'italic', flex: 1 }}>
+              <span style={{ fontSize: 11, color: 'var(--text-3)', fontStyle: 'italic', flex: 1 }}>
                 {refineDesc ? `✎ ${refineDesc}` : ''}
               </span>
               {history.length > 0 && (
                 <button
                   onClick={undo}
                   style={{
-                    fontSize: 11, color: '#555', background: 'transparent',
-                    border: 'none', cursor: 'pointer', flexShrink: 0,
-                    padding: '2px 4px',
+                    fontSize: 11, color: 'var(--text-3)', background: 'transparent',
+                    border: 'none', cursor: 'pointer', flexShrink: 0, padding: '2px 4px',
+                    transition: 'color .15s',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#aaa')}
-                  onMouseLeave={e => (e.currentTarget.style.color = '#555')}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-2)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-3)')}
                 >
                   ↩ 撤销
                 </button>
@@ -293,39 +346,54 @@ export default function VoiceCreate({ vc }) {
             </div>
           )}
 
-          {/* Voice refine button / overlay */}
+          {/* Voice refine toggle */}
           {!isRefineOpen ? (
             <button
               onClick={() => setIsRefineOpen(true)}
               disabled={isRefineLoading}
               style={{
-                width: '100%', padding: '9px 0', borderRadius: 8, fontSize: 13,
-                background: 'transparent', border: '1px solid #2a2a30',
-                color: '#666', cursor: isRefineLoading ? 'not-allowed' : 'pointer',
-                transition: 'all 0.15s',
+                width: '100%', padding: '9px 0', borderRadius: 'var(--r-md)', fontSize: 13,
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                color: 'var(--text-3)',
+                cursor: isRefineLoading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
               }}
-              onMouseEnter={e => { if (!isRefineLoading) e.currentTarget.style.borderColor = '#555' }}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = '#2a2a30')}
+              onMouseEnter={e => {
+                if (!isRefineLoading) {
+                  e.currentTarget.style.borderColor = 'rgba(123,110,246,0.3)'
+                  e.currentTarget.style.color = 'var(--accent)'
+                  e.currentTarget.style.background = 'rgba(123,110,246,0.05)'
+                }
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'var(--border)'
+                e.currentTarget.style.color = 'var(--text-3)'
+                e.currentTarget.style.background = 'transparent'
+              }}
             >
               🎤 语音优化
             </button>
           ) : (
-            <div style={{
-              background: '#16161a', border: '1px solid #2a2a30',
-              borderRadius: 10, padding: '16px',
+            <div className="glass-panel" style={{
+              padding: 16,
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+              border: '1px solid rgba(123,110,246,0.2)',
+              animation: 'fadeUp .25s cubic-bezier(0.34,1.56,0.64,1)',
             }}>
-              <p style={{ fontSize: 12, color: '#666', margin: 0, textAlign: 'center', lineHeight: 1.6 }}>
+              <p style={{ fontSize: 12, color: 'var(--text-3)', margin: 0, textAlign: 'center', lineHeight: 1.6 }}>
                 按住录音，说出修改要求<br />
-                <span style={{ fontSize: 11, color: '#444' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-3)', opacity: 0.7 }}>
                   例如：「把第二段再详细一点」「标题改得更吸引人」
                 </span>
               </p>
 
               {refineTranscript && (
                 <div style={{
-                  width: '100%', fontSize: 12, color: '#888', lineHeight: 1.6,
-                  background: '#0d0d0f', borderRadius: 6, padding: '7px 10px',
+                  width: '100%', fontSize: 12, color: 'var(--text-2)', lineHeight: 1.6,
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--r-sm)', padding: '7px 10px',
                 }}>
                   {refineTranscript}
                 </div>
@@ -338,16 +406,21 @@ export default function VoiceCreate({ vc }) {
                 size={50}
               />
 
-              <p style={{ fontSize: 11, color: '#333', margin: 0 }}>
-                {isRefineRecording ? '● 录音中，松开发送' : '○ 按住录音'}
+              <p style={{ fontSize: 11, color: 'var(--text-3)', margin: 0 }}>
+                {isRefineRecording
+                  ? <span style={{ color: 'var(--red)', animation: 'pulse 1s infinite' }}>● 录音中，松开发送</span>
+                  : '○ 按住录音'
+                }
               </p>
 
               <button
                 onClick={closeRefine}
                 style={{
-                  fontSize: 11, color: '#444', background: 'transparent',
-                  border: 'none', cursor: 'pointer',
+                  fontSize: 11, color: 'var(--text-3)', background: 'transparent',
+                  border: 'none', cursor: 'pointer', transition: 'color .15s',
                 }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-2)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-3)')}
               >
                 取消
               </button>
@@ -358,12 +431,12 @@ export default function VoiceCreate({ vc }) {
           <button
             onClick={reset}
             style={{
-              width: '100%', padding: '7px 0', borderRadius: 6, fontSize: 11,
-              background: 'transparent', border: '1px solid #1a1a1e',
-              color: '#444', cursor: 'pointer', transition: 'color 0.15s',
+              width: '100%', padding: '7px 0', borderRadius: 'var(--r-sm)', fontSize: 11,
+              background: 'transparent', border: '1px solid var(--border)',
+              color: 'var(--text-3)', cursor: 'pointer', transition: 'color 0.15s',
             }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#777')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#444')}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-2)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-3)')}
           >
             重新录音
           </button>

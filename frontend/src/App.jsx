@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import ParticleBackground   from './components/ParticleBackground'
 import HistoryPage          from './pages/HistoryPage'
 import SchedulePage         from './pages/SchedulePage'
 import ProfilePage          from './pages/ProfilePage'
@@ -16,6 +17,7 @@ import ImageGenPanel        from './components/ImageGenPanel'
 import LoginCheckModal      from './components/LoginCheckModal'
 import PolishDrawer         from './components/PolishDrawer'
 import PublishModal         from './components/PublishModal'
+import NotificationBell    from './components/NotificationBell'
 import { useAgent }         from './hooks/useAgent'
 import { useVoiceCreate }   from './hooks/useVoiceCreate'
 import { useAuth }          from './hooks/useAuth'
@@ -60,37 +62,50 @@ function AuthModal({ onClose, auth }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 500,
-      background: 'rgba(0,0,0,.75)', backdropFilter: 'blur(6px)',
+      background: 'rgba(0,0,0,.75)',
+      WebkitBackdropFilter: 'blur(12px)', backdropFilter: 'blur(12px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
+      animation: 'fadeIn .2s ease',
     }}>
       <div style={{
-        background: 'var(--bg-panel)', border: '1px solid var(--border)',
-        borderRadius: 16, padding: '32px 32px 28px', width: 400,
-        animation: 'modalIn .2s ease',
-        boxShadow: '0 24px 80px rgba(0,0,0,.7)',
+        background: 'rgba(8,11,18,0.97)',
+        border: '1px solid rgba(123,110,246,0.2)',
+        borderRadius: 'var(--r-xl)', padding: '36px 32px 28px', width: 400,
+        animation: 'modalIn .3s cubic-bezier(0.34,1.56,0.64,1)',
+        boxShadow: '0 25px 80px rgba(0,0,0,.8), 0 0 60px rgba(123,110,246,0.08), 0 0 0 1px rgba(255,255,255,0.04) inset',
+        position: 'relative',
       }}>
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{ fontSize: 26, marginBottom: 4, animation: 'float 3s ease-in-out infinite' }}>
+            <span style={{
+              background: 'linear-gradient(135deg, #7B6EF6, #60A5FA)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            }}>◆</span>
+          </div>
           <div style={{
-            fontSize: 28,
-            background: 'linear-gradient(135deg, var(--accent), var(--accent2))',
+            fontSize: 20, fontWeight: 800,
+            background: 'linear-gradient(90deg, #7B6EF6, #A78BFA, #60A5FA)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-            fontWeight: 800, letterSpacing: '-1px',
-          }}>◈ Prism</div>
+            letterSpacing: '-0.5px',
+          }}>Prism</div>
         </div>
 
         {/* Tabs */}
         <div style={{
-          display: 'flex', borderRadius: 8, overflow: 'hidden',
+          display: 'flex', borderRadius: 'var(--r-md)', overflow: 'hidden',
+          background: 'rgba(255,255,255,0.03)',
           border: '1px solid var(--border)', marginBottom: 24,
         }}>
           {['login','register'].map(t => (
             <button key={t} onClick={() => { setTab(t); setError('') }}
               style={{
                 flex: 1, padding: '9px 0', fontSize: 13, border: 'none',
-                cursor: 'pointer', transition: 'all .15s',
-                background: tab === t ? 'var(--accent-glow)' : 'transparent',
-                color: tab === t ? 'var(--accent)' : 'var(--text-muted)',
+                cursor: 'pointer', transition: 'all .2s',
+                background: tab === t
+                  ? 'linear-gradient(135deg, rgba(123,110,246,0.2), rgba(96,165,250,0.1))'
+                  : 'transparent',
+                color: tab === t ? 'var(--text-1)' : 'var(--text-3)',
                 fontWeight: tab === t ? 600 : 400,
               }}
             >
@@ -111,14 +126,14 @@ function AuthModal({ onClose, auth }) {
 
           {error && (
             <div style={{ fontSize: 12, color: 'var(--red)', padding: '8px 12px',
-              background: 'rgba(248,113,113,.08)', borderRadius: 6 }}>
+              background: 'rgba(248,113,113,.08)', borderRadius: 6, animation: 'shake .4s ease' }}>
               ⚠ {error}
             </div>
           )}
 
           <button type="submit" className="btn-primary"
             disabled={loading}
-            style={{ padding: '11px 0', fontSize: 14, marginTop: 4 }}
+            style={{ padding: '12px 0', fontSize: 14, marginTop: 4, borderRadius: 'var(--r-md)' }}
           >
             {loading ? '处理中...' : tab === 'login' ? '登录' : '注册'}
           </button>
@@ -126,10 +141,15 @@ function AuthModal({ onClose, auth }) {
 
         <button onClick={onClose} style={{
           position: 'absolute', top: 16, right: 16,
-          width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border)',
-          background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)',
+          width: 28, height: 28, borderRadius: 'var(--r-sm)',
+          border: '1px solid var(--border)',
+          background: 'transparent', cursor: 'pointer', color: 'var(--text-3)',
           fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>×</button>
+          transition: 'all .15s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = 'var(--red)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-3)' }}
+        >×</button>
       </div>
     </div>
   )
@@ -212,6 +232,7 @@ export default function App() {
   const [polish,           setPolish]            = useState({ open: false, platform: null })
   const [uiLogs,           setUiLogs]            = useState([])
   const [selectedImages,   setSelectedImages]    = useState({})  // { platform: base64 } 用户选中的封面图
+  const [auditSummary,     setAuditSummary]      = useState(null)    // { pending, approved, rejected, timeout }
   const [contentType,      setContentType]       = useState('text')  // 'text' | 'video'
   const [videoFile,        setVideoFile]         = useState(null)    // File 对象
   const [videoMeta,        setVideoMeta]         = useState(null)    // { name, sizeMB, duration }
@@ -273,6 +294,19 @@ export default function App() {
   useEffect(() => {
     if (isLivePublishing && !showPublishModal) setShowPublishModal(true)
   }, [isLivePublishing])
+
+  // 轮询审核状态（首次加载 + 每 5 分钟）
+  useEffect(() => {
+    async function fetchAudit() {
+      try {
+        const r = await fetch('/api/audit/summary').then(x => x.json())
+        if (!r?.error) setAuditSummary(r)
+      } catch { /* 后端未启动时静默失败 */ }
+    }
+    fetchAudit()
+    const iv = setInterval(fetchAudit, 5 * 60 * 1000)
+    return () => clearInterval(iv)
+  }, [])
 
   function appendUiLog(line) {
     setUiLogs(prev => prev.includes(line) ? prev : [...prev, line])
@@ -389,10 +423,21 @@ export default function App() {
 
     freshState()
 
-    // Step 1: Create task with skip_adapt=true (backend runs skip_node, very fast)
+    // Step 1: Upload video if needed
+    let vpath = null, vname = null
+    if (contentType === 'video' && videoFile) {
+      try {
+        vpath = await ensureVideoUploaded()
+        vname = videoFile.name
+      } catch(e) {
+        window.alert(e?.message || '视频上传失败'); return
+      }
+    }
+
+    // Step 2: Create task with skip_adapt=true (backend runs skip_node, very fast)
     let newTaskId
     try {
-      newTaskId = await submitText(activeTitle, activeBody, platforms, true)
+      newTaskId = await submitText(activeTitle, activeBody, platforms, true, vpath, vname)
     } catch(e) {
       window.alert(e?.message || '提交失败，请检查后端是否正常启动')
       return
@@ -531,52 +576,88 @@ export default function App() {
 
   /* ────────────────────────────────────────────────────────────────────────── */
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', color: 'var(--text)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-void)', color: 'var(--text-1)', position: 'relative' }}>
+      <ParticleBackground />
 
       {/* ── Top navbar ──────────────────────────────────────────────────────── */}
       <header style={{
-        height: 64, borderBottom: '1px solid var(--border)',
+        height: 56, borderBottom: '1px solid rgba(123,110,246,0.12)',
         padding: '0 28px', display: 'flex', alignItems: 'center', gap: 0,
-        background: 'var(--bg-panel)',
+        background: 'rgba(5,6,10,0.82)',
         position: 'sticky', top: 0, zIndex: 100,
-        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        boxShadow: '0 1px 0 rgba(123,110,246,0.08)',
       }}>
         {/* Logo */}
         <div
           onClick={() => setPage('home')}
           style={{
-            fontSize: 17, fontWeight: 800, letterSpacing: '-0.5px',
-            background: 'linear-gradient(135deg, var(--accent), var(--accent2))',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             marginRight: 36, cursor: 'pointer', userSelect: 'none',
-            display: 'flex', alignItems: 'center', gap: 7,
+            display: 'flex', alignItems: 'center', gap: 8,
           }}
         >
-          ◈ Prism
+          <span style={{
+            fontSize: 18,
+            background: 'linear-gradient(135deg, #7B6EF6, #60A5FA)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            animation: 'float 3s ease-in-out infinite',
+            display: 'inline-block',
+          }}>◆</span>
+          <span style={{
+            fontSize: 16, fontWeight: 700, letterSpacing: '-0.3px',
+            background: 'linear-gradient(90deg, #7B6EF6, #A78BFA, #60A5FA)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          }}>Prism</span>
         </div>
 
         {/* Nav tabs */}
         {[
-          { key: 'home',    label: '发布'  },
-          { key: 'history', label: '历史'  },
-          { key: 'schedule',label: '定时'  },
+          { key: 'home',     label: '发布' },
+          { key: 'history',  label: '历史' },
+          { key: 'schedule', label: '定时' },
         ].map(tab => (
           <button
             key={tab.key}
             onClick={() => setPage(tab.key)}
             style={{
-              padding: '0 18px', height: 64, fontSize: 13, background: 'transparent',
-              border: 'none', cursor: 'pointer', transition: 'color .15s',
+              padding: '0 18px', height: 56, fontSize: 13, background: 'transparent',
+              border: 'none', cursor: 'pointer', position: 'relative',
               color: page === tab.key ? 'var(--accent)' : 'var(--text-muted)',
-              borderBottom: page === tab.key ? '2px solid var(--accent)' : '2px solid transparent',
               fontWeight: page === tab.key ? 600 : 400,
+              transition: 'color .2s',
             }}
+            onMouseEnter={e => { if (page !== tab.key) e.currentTarget.style.color = 'var(--text-1)' }}
+            onMouseLeave={e => { if (page !== tab.key) e.currentTarget.style.color = 'var(--text-muted)' }}
           >
             {tab.label}
+            {/* animated underline indicator */}
+            <span style={{
+              position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+              height: 2, width: page === tab.key ? '60%' : '0%',
+              background: 'linear-gradient(90deg, #7B6EF6, #60A5FA)',
+              borderRadius: '2px 2px 0 0',
+              transition: 'width .25s cubic-bezier(0.4, 0, 0.2, 1)',
+            }} />
           </button>
         ))}
 
         <div style={{ flex: 1 }} />
+
+        {/* Notification bell */}
+        <div style={{ marginRight: 8 }}>
+          <NotificationBell
+            summary={auditSummary}
+            onOpen={async () => {
+              try { await fetch('/api/audit/mark-seen', { method: 'POST' }) } catch {}
+              // 重新拉取以更新角标
+              try {
+                const r = await fetch('/api/audit/summary').then(x => x.json())
+                if (!r?.error) setAuditSummary(r)
+              } catch {}
+            }}
+          />
+        </div>
 
         {/* User area */}
         {auth.isLoggedIn ? (
@@ -584,34 +665,41 @@ export default function App() {
             <button
               onClick={() => setShowUserMenu(m => !m)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 9,
-                padding: '6px 12px', borderRadius: 8, cursor: 'pointer',
-                background: showUserMenu ? 'var(--bg-hover)' : 'transparent',
-                border: '1px solid var(--border)', transition: 'all .15s',
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '5px 12px 5px 5px', borderRadius: 20, cursor: 'pointer',
+                background: showUserMenu ? 'rgba(123,110,246,0.12)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${showUserMenu ? 'rgba(123,110,246,0.35)' : 'rgba(255,255,255,0.08)'}`,
+                transition: 'all .2s',
               }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(123,110,246,0.1)'; e.currentTarget.style.borderColor = 'rgba(123,110,246,0.3)' }}
+              onMouseLeave={e => { if (!showUserMenu) { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)' } }}
             >
               <div style={{
-                width: 28, height: 28, borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--accent), var(--accent2))',
+                width: 26, height: 26, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #7B6EF6, #60A5FA)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 12, fontWeight: 700, color: '#fff',
+                fontSize: 11, fontWeight: 700, color: '#fff',
+                boxShadow: '0 0 10px rgba(123,110,246,0.4)',
               }}>
                 {(auth.user?.username || '?')[0].toUpperCase()}
               </div>
-              <span style={{ fontSize: 13, color: 'var(--text)', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-1)', maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {auth.user?.username}
               </span>
-              <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>▾</span>
+              <span style={{ color: 'var(--text-3)', fontSize: 9 }}>▾</span>
             </button>
 
             {showUserMenu && (
               <>
                 <div onClick={() => setShowUserMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 49 }} />
                 <div style={{
-                  position: 'absolute', top: '100%', right: 0, marginTop: 6,
-                  background: 'var(--bg-panel)', border: '1px solid var(--border)',
-                  borderRadius: 10, overflow: 'hidden', zIndex: 50,
-                  boxShadow: '0 12px 40px rgba(0,0,0,.5)', minWidth: 160,
+                  position: 'absolute', top: '100%', right: 0, marginTop: 8,
+                  background: 'rgba(8,11,18,0.96)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  backdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(123,110,246,0.15)',
+                  borderRadius: 12, overflow: 'hidden', zIndex: 50,
+                  boxShadow: '0 16px 48px rgba(0,0,0,.65)', minWidth: 168,
                 }}>
                   {[
                     { label: '我的账户', action: () => { setPage('profile'); setShowUserMenu(false) } },
@@ -621,9 +709,9 @@ export default function App() {
                     <button key={item.label} onClick={item.action} style={{
                       width: '100%', padding: '11px 16px', textAlign: 'left', fontSize: 13,
                       background: 'transparent', border: 'none', cursor: 'pointer',
-                      color: item.danger ? 'var(--red)' : 'var(--text)', transition: 'background .1s',
+                      color: item.danger ? 'var(--red)' : 'var(--text-1)', transition: 'background .15s',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(123,110,246,0.08)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       {item.label}
@@ -636,8 +724,14 @@ export default function App() {
         ) : (
           <button
             onClick={() => setShowAuthModal(true)}
-            className="btn-primary"
-            style={{ padding: '8px 20px', fontSize: 13 }}
+            style={{
+              padding: '7px 20px', fontSize: 13, borderRadius: 20,
+              background: 'rgba(123,110,246,0.12)', fontWeight: 600,
+              border: '1px solid rgba(123,110,246,0.4)', color: 'var(--accent)',
+              cursor: 'pointer', transition: 'all .2s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(123,110,246,0.2)'; e.currentTarget.style.boxShadow = '0 0 20px rgba(123,110,246,0.3)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(123,110,246,0.12)'; e.currentTarget.style.boxShadow = 'none' }}
           >
             登录
           </button>
@@ -646,28 +740,33 @@ export default function App() {
 
       {/* ── Page content ────────────────────────────────────────────────────── */}
 
-      {page === 'history'  && (
+      {page === 'history' && (
+        <div style={{ position: 'relative', zIndex: 1 }}>
         <HistoryPage onReuse={record => {
           setTitle(record.original_title || ''); setBody(record.original_body || '')
           setInputMode('manual'); setPage('home')
         }} />
+        </div>
       )}
-      {page === 'schedule' && <SchedulePage />}
-      {page === 'profile'  && <ProfilePage auth={auth} />}
+      {page === 'schedule' && <div style={{ position: 'relative', zIndex: 1 }}><SchedulePage /></div>}
+      {page === 'profile'  && <div style={{ position: 'relative', zIndex: 1 }}><ProfilePage auth={auth} /></div>}
 
       {page === 'home' && (
         <div style={{
           maxWidth: 1440, margin: '0 auto', padding: '24px 24px',
           display: 'flex', gap: 20, alignItems: 'flex-start',
+          position: 'relative', zIndex: 1,
         }}>
 
           {/* ── LEFT COLUMN: Platform selector ─────────────────────────────── */}
-          <div style={{ width: 300, flexShrink: 0, position: 'sticky', top: 88 }}>
-            <div style={{
-              background: 'var(--bg-panel)', border: '1px solid var(--border)',
-              borderRadius: 14, padding: '20px',
-            }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 14, letterSpacing: .5 }}>
+          <div style={{ width: 300, flexShrink: 0, position: 'sticky', top: 80 }}>
+            <div className="glass-panel" style={{ padding: '20px' }}>
+              <div style={{
+                fontSize: 10, fontWeight: 600, color: 'var(--text-3)',
+                marginBottom: 16, letterSpacing: '0.12em', textTransform: 'uppercase',
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <span style={{ width: 2, height: 14, background: 'var(--accent)', borderRadius: 1, display: 'inline-block' }} />
                 目标平台
               </div>
               <PlatformSelector
@@ -681,14 +780,12 @@ export default function App() {
 
           {/* ── MIDDLE COLUMN: Content editor ──────────────────────────────── */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              background: 'var(--bg-panel)', border: '1px solid var(--border)',
-              borderRadius: 14, padding: '20px', marginBottom: 16,
-            }}>
+            <div className="glass-panel" style={{ padding: '20px', marginBottom: 16 }}>
               {/* Input mode tabs */}
               <div style={{
-                display: 'flex', borderRadius: 8, overflow: 'hidden',
-                border: '1px solid var(--border)', marginBottom: 16,
+                display: 'flex', borderRadius: 10, overflow: 'hidden',
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid var(--border)', marginBottom: 16, position: 'relative',
               }}>
                 {[
                   { key: 'manual',  label: '✏️ 手动输入' },
@@ -696,12 +793,23 @@ export default function App() {
                   { key: 'voice',   label: '🎤 语音创作' },
                 ].map(tab => (
                   <button key={tab.key} onClick={() => setInputMode(tab.key)} style={{
-                    flex: 1, padding: '9px 0', fontSize: 12, border: 'none', cursor: 'pointer',
-                    background: inputMode === tab.key ? 'var(--accent-glow)' : 'transparent',
-                    color: inputMode === tab.key ? 'var(--accent)' : 'var(--text-muted)',
-                    fontWeight: inputMode === tab.key ? 600 : 400, transition: 'all .15s',
+                    flex: 1, padding: '10px 0', fontSize: 12, border: 'none', cursor: 'pointer',
+                    background: inputMode === tab.key
+                      ? 'linear-gradient(135deg, rgba(123,110,246,0.18), rgba(96,165,250,0.08))'
+                      : 'transparent',
+                    borderRight: '1px solid var(--border)',
+                    color: inputMode === tab.key ? 'var(--text-1)' : 'var(--text-3)',
+                    fontWeight: inputMode === tab.key ? 600 : 400,
+                    transition: 'all .2s',
+                    position: 'relative',
                   }}>
                     {tab.label}
+                    {inputMode === tab.key && (
+                      <span style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0, height: 1,
+                        background: 'linear-gradient(90deg, transparent, var(--accent), transparent)',
+                      }} />
+                    )}
                   </button>
                 ))}
               </div>
@@ -744,6 +852,115 @@ export default function App() {
                   onUpdate={(t, b) => { setTitle(t); setBody(b) }}
                 />
               )}
+            </div>
+
+            {/* ── Content type selector + video upload ──────────── */}
+            <div className="glass-panel" style={{
+              padding: '14px 16px', marginBottom: 0,
+              display: 'flex', flexDirection: 'column', gap: 12,
+            }}>
+              {/* Radio toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>内容类型</span>
+                {[
+                  { key: 'text',  label: '📄 图文' },
+                  { key: 'video', label: '🎬 图文+视频' },
+                ].map(opt => (
+                  <label key={opt.key} style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    cursor: 'pointer', userSelect: 'none', fontSize: 13,
+                    color: contentType === opt.key ? 'var(--text)' : 'var(--text-muted)',
+                  }}>
+                    <span style={{
+                      width: 14, height: 14, borderRadius: '50%', flexShrink: 0,
+                      border: `2px solid ${contentType === opt.key ? 'var(--accent)' : 'var(--border-active)'}`,
+                      background: contentType === opt.key ? 'var(--accent)' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'all .15s',
+                    }}
+                      onClick={() => setContentType(opt.key)}
+                    >
+                      {contentType === opt.key && (
+                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff' }} />
+                      )}
+                    </span>
+                    <span onClick={() => setContentType(opt.key)}>{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+
+              {/* Video upload area */}
+              {contentType === 'video' && (() => {
+                const videoFileInputRef_id = 'prism-video-file-input'
+                return (
+                  <div style={{
+                    border: '1px dashed var(--border-active)', borderRadius: 10,
+                    padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10,
+                  }}>
+                    {!videoMeta ? (
+                      /* Empty state */
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: 28, marginBottom: 6 }}>🎬</div>
+                        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 4 }}>
+                          拖拽视频文件到这里，或点击选择
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 10 }}>
+                          支持 MP4 / MOV，最大 500MB
+                        </div>
+                        <button
+                          onClick={() => document.getElementById(videoFileInputRef_id)?.click()}
+                          style={{
+                            padding: '7px 18px', borderRadius: 7, fontSize: 12,
+                            background: 'transparent',
+                            border: '1px solid var(--border-active)',
+                            color: 'var(--text-muted)', cursor: 'pointer',
+                          }}
+                        >
+                          选择视频文件
+                        </button>
+                      </div>
+                    ) : (
+                      /* File selected */
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontSize: 22 }}>🎬</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {videoMeta.name}
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 2 }}>
+                            {videoMeta.sizeMB} MB
+                            {videoMeta.duration && ` · ${videoMeta.duration}`}
+                            {videoPath && <span style={{ color: 'var(--green)', marginLeft: 8 }}>✓ 已上传</span>}
+                            {videoUploading && <span style={{ color: 'var(--orange)', marginLeft: 8 }}>⟳ 上传中...</span>}
+                          </div>
+                          {/* Platform video limits hint */}
+                          <div style={{ fontSize: 10, color: '#444', marginTop: 3, lineHeight: 1.5 }}>
+                            B站：无限制 · 抖音：15秒-15分钟 · 微博：≤60分钟 · 小红书：≤15分钟
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => { setVideoFile(null); setVideoMeta(null); setVideoPath(null) }}
+                          style={{
+                            padding: '4px 10px', borderRadius: 6, fontSize: 11,
+                            background: 'transparent', border: '1px solid var(--border)',
+                            color: 'var(--text-dim)', cursor: 'pointer', flexShrink: 0,
+                          }}
+                        >
+                          删除
+                        </button>
+                      </div>
+                    )}
+                    <input
+                      id={videoFileInputRef_id}
+                      type="file"
+                      accept="video/mp4,video/quicktime,.mp4,.mov"
+                      style={{ display: 'none' }}
+                      onChange={handleVideoFileChange}
+                    />
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Skip-adapt toggle */}
@@ -795,18 +1012,37 @@ export default function App() {
                 onClick={handleSubmit}
                 disabled={skipAdapt || polling || (!editorTitle && !editorBody)}
                 style={{
-                  flex: 1, padding: '11px 0', borderRadius: 8, border: 'none',
+                  flex: 1, padding: '12px 0', borderRadius: 10, border: 'none',
                   background: (skipAdapt || polling || (!editorTitle && !editorBody))
-                    ? 'var(--bg-card)'
-                    : 'linear-gradient(135deg, var(--accent), var(--accent2))',
-                  color: (skipAdapt || polling || (!editorTitle && !editorBody)) ? 'var(--text-dim)' : '#fff',
-                  fontWeight: 600, fontSize: 14, cursor: skipAdapt ? 'not-allowed' : 'pointer',
-                  boxShadow: (skipAdapt || polling || (!editorTitle && !editorBody)) ? 'none' : '0 0 20px var(--accent-glow)',
-                  transition: 'all .2s',
+                    ? 'rgba(255,255,255,0.04)'
+                    : 'linear-gradient(135deg, #7B6EF6, #A78BFA)',
+                  color: (skipAdapt || polling || (!editorTitle && !editorBody)) ? 'var(--text-3)' : '#fff',
+                  fontWeight: 600, fontSize: 14,
+                  cursor: (skipAdapt || polling || (!editorTitle && !editorBody)) ? 'not-allowed' : 'pointer',
+                  boxShadow: (skipAdapt || polling || (!editorTitle && !editorBody))
+                    ? 'none' : '0 4px 20px rgba(123,110,246,0.4)',
+                  transition: 'all .25s cubic-bezier(0.4,0,0.2,1)',
                   opacity: skipAdapt ? .45 : 1,
+                  position: 'relative', overflow: 'hidden',
+                }}
+                onMouseEnter={e => {
+                  if (!skipAdapt && !polling && (editorTitle || editorBody)) {
+                    e.currentTarget.style.transform = 'translateY(-2px)'
+                    e.currentTarget.style.boxShadow = '0 6px 28px rgba(123,110,246,0.55)'
+                  }
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'none'
+                  e.currentTarget.style.boxShadow = (skipAdapt || polling || (!editorTitle && !editorBody))
+                    ? 'none' : '0 4px 20px rgba(123,110,246,0.4)'
                 }}
               >
-                {polling && !hasResults ? '✦ 分析中...' : '✨ AI 适配 + 检查'}
+                {polling && !hasResults
+                  ? <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #fff', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin .75s linear infinite' }} />
+                      分析中...
+                    </span>
+                  : '✨ AI 适配 + 检查'}
               </button>
 
               {/* Normal publish button (only when AI adapt ran) */}
@@ -815,14 +1051,18 @@ export default function App() {
                   onClick={handlePublish}
                   disabled={isLivePublishing}
                   style={{
-                    padding: '11px 24px', borderRadius: 8, border: 'none',
+                    padding: '12px 26px', borderRadius: 10, border: 'none', flexShrink: 0,
                     background: isLivePublishing
-                      ? 'var(--bg-card)'
-                      : 'linear-gradient(135deg, #22d3a5, #6378ff)',
-                    color: isLivePublishing ? 'var(--text-dim)' : '#fff',
-                    fontWeight: 700, fontSize: 14, cursor: isLivePublishing ? 'not-allowed' : 'pointer',
-                    transition: 'all .2s', flexShrink: 0,
+                      ? 'rgba(255,255,255,0.04)'
+                      : 'linear-gradient(135deg, #34D399, #059669)',
+                    color: isLivePublishing ? 'var(--text-3)' : '#fff',
+                    fontWeight: 700, fontSize: 14,
+                    cursor: isLivePublishing ? 'not-allowed' : 'pointer',
+                    boxShadow: isLivePublishing ? 'none' : '0 4px 20px rgba(52,211,153,0.35)',
+                    transition: 'all .25s cubic-bezier(0.4,0,0.2,1)',
                   }}
+                  onMouseEnter={e => { if (!isLivePublishing) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 28px rgba(52,211,153,0.5)' } }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = isLivePublishing ? 'none' : '0 4px 20px rgba(52,211,153,0.35)' }}
                 >
                   {isLivePublishing ? '发布中...' : '↑ 发布'}
                 </button>
@@ -834,17 +1074,19 @@ export default function App() {
                   onClick={handleDirectPublish}
                   disabled={isLivePublishing || (!editorTitle && !editorBody)}
                   style={{
-                    padding: '11px 24px', borderRadius: 8, border: 'none', flexShrink: 0,
+                    padding: '12px 26px', borderRadius: 10, border: 'none', flexShrink: 0,
                     background: (isLivePublishing || (!editorTitle && !editorBody))
-                      ? 'var(--bg-card)'
-                      : 'linear-gradient(135deg, var(--orange), #f97316)',
-                    color: (isLivePublishing || (!editorTitle && !editorBody)) ? 'var(--text-dim)' : '#fff',
+                      ? 'rgba(255,255,255,0.04)'
+                      : 'linear-gradient(135deg, #FBBF24, #f97316)',
+                    color: (isLivePublishing || (!editorTitle && !editorBody)) ? 'var(--text-3)' : '#fff',
                     fontWeight: 700, fontSize: 14,
                     cursor: (isLivePublishing || (!editorTitle && !editorBody)) ? 'not-allowed' : 'pointer',
-                    transition: 'all .2s',
+                    transition: 'all .25s cubic-bezier(0.4,0,0.2,1)',
                     boxShadow: (isLivePublishing || (!editorTitle && !editorBody))
-                      ? 'none' : '0 0 20px rgba(245,158,11,.35)',
+                      ? 'none' : '0 4px 20px rgba(251,191,36,0.35)',
                   }}
+                  onMouseEnter={e => { if (!(isLivePublishing || (!editorTitle && !editorBody))) { e.currentTarget.style.transform = 'translateY(-2px)' } }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none' }}
                 >
                   {isLivePublishing ? '发布中...' : '↑ 直接发布'}
                 </button>
@@ -864,16 +1106,16 @@ export default function App() {
           </div>
 
           {/* ── RIGHT COLUMN: Results ─────────────────────────────────────── */}
-          <div style={{ width: 380, flexShrink: 0 }}>
+          <div style={{ width: 380, flexShrink: 0, position: 'relative', zIndex: 1 }}>
 
             {/* Loading skeleton */}
             {polling && !hasResults && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[120, 100, 100, 120].map((h, i) => (
-                  <div key={i} style={{
-                    height: h, background: 'var(--bg-card)', borderRadius: 12,
+                  <div key={i} className="skeleton" style={{
+                    height: h, borderRadius: 12,
                     border: '1px solid var(--border)',
-                    animation: `shimmer 1.6s ease-in-out ${i * .18}s infinite`,
+                    animationDelay: `${i * .18}s`,
                   }} />
                 ))}
               </div>
@@ -920,14 +1162,12 @@ export default function App() {
 
             {/* Platform result tabs */}
             {hasResults && (
-              <div style={{
-                background: 'var(--bg-panel)', border: '1px solid var(--border)',
-                borderRadius: 14, overflow: 'hidden',
-              }}>
-                {/* Tab bar */}
+              <div className="glass-panel" style={{ overflow: 'hidden' }}>
+                {/* Tab bar with sliding indicator */}
                 <div style={{
                   display: 'flex', borderBottom: '1px solid var(--border)',
-                  background: 'var(--bg-card)',
+                  background: 'rgba(255,255,255,0.02)',
+                  position: 'relative',
                 }}>
                   {Object.keys(taskData.adapted_results).map(pid => {
                     const r = taskData.adapted_results[pid]
@@ -936,39 +1176,60 @@ export default function App() {
                     const dotColor = status === 'success' ? 'var(--green)'
                       : status === 'failed' ? 'var(--red)'
                       : ['logging_in','navigating','filling','publishing','retrying','awaiting_assist'].includes(status) ? 'var(--accent)'
-                      : 'var(--text-dim)'
+                      : 'var(--text-3)'
                     return (
                       <button key={pid} onClick={() => setActiveResultTab(pid)} style={{
-                        flex: 1, padding: '10px 0', fontSize: 12, border: 'none',
-                        borderBottom: isActive ? '2px solid var(--accent)' : '2px solid transparent',
-                        background: isActive ? 'var(--bg-panel)' : 'transparent',
-                        color: isActive ? 'var(--text)' : 'var(--text-muted)',
+                        flex: 1, padding: '10px 0', fontSize: 11, border: 'none',
+                        background: 'transparent',
+                        color: isActive ? 'var(--text-1)' : 'var(--text-3)',
                         cursor: 'pointer', fontWeight: isActive ? 600 : 400,
-                        transition: 'all .15s', display: 'flex', alignItems: 'center',
-                        justifyContent: 'center', gap: 5,
+                        transition: 'all .2s', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', gap: 4, position: 'relative',
                       }}>
                         <span style={{
-                          width: 6, height: 6, borderRadius: '50%',
+                          width: 5, height: 5, borderRadius: '50%',
                           background: dotColor, display: 'inline-block', flexShrink: 0,
+                          boxShadow: isActive ? `0 0 6px ${dotColor}` : 'none',
+                          transition: 'box-shadow .2s',
                         }} />
-                        {PICONS[pid]} {PNAMES[pid] ?? pid}
+                        {PNAMES[pid] ?? pid}
+                        {/* per-tab underline */}
+                        <span style={{
+                          position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+                          height: 2, width: isActive ? '70%' : '0%',
+                          background: 'linear-gradient(90deg, #7B6EF6, #60A5FA)',
+                          borderRadius: '2px 2px 0 0',
+                          transition: 'width .25s cubic-bezier(0.34,1.56,0.64,1)',
+                        }} />
                       </button>
                     )
                   })}
                 </div>
 
-                {/* Active platform result */}
+                {/* ── Active platform result — FIXED LAYOUT (no overlap) ── */}
                 {activeResult && (
-                  <div style={{ padding: '16px', position: 'relative' }}>
-                    {/* Polish button (top-right of body area) */}
-                    <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 2 }}>
+                  <div style={{ padding: '16px' }}>
+                    {/* Card header: status label + polish button — side by side, NOT absolute */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center',
+                      justifyContent: 'space-between', marginBottom: 12,
+                    }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
+                        {!['logging_in','navigating','filling','publishing','retrying','awaiting_assist','success','failed','blocked'].includes(activeResult.status)
+                          ? '点击标题或正文可直接编辑' : ''}
+                      </span>
                       <button
                         onClick={() => setPolish({ open: true, platform: activeResultTab })}
                         style={{
-                          padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer',
-                          background: 'var(--accent-glow)', border: '1px solid var(--border-active)',
+                          padding: '4px 12px', borderRadius: 'var(--r-sm)', fontSize: 11,
+                          cursor: 'pointer',
+                          background: 'rgba(123,110,246,0.1)',
+                          border: '1px solid rgba(123,110,246,0.3)',
                           color: 'var(--accent)',
+                          transition: 'all .2s',
                         }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(123,110,246,0.2)'; e.currentTarget.style.boxShadow = '0 0 12px var(--accent-glow)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(123,110,246,0.1)'; e.currentTarget.style.boxShadow = 'none' }}
                       >
                         ✨ 润色
                       </button>

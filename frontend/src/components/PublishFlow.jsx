@@ -1,10 +1,14 @@
 import { useRef, useEffect } from 'react'
 import { finalConfirm, finalConfirmAll } from '../api/client'
 
-/* ── constants ──────────────────────────────────────────────── */
 const PNAMES = {
   wechat: '公众号', zhihu: '知乎',
   xiaohongshu: '小红书', bilibili: 'B站',
+}
+
+const PLATFORM_COLORS = {
+  wechat: '#07C160', zhihu: '#0066FF', xiaohongshu: '#FF2442',
+  bilibili: '#00AEEC', csdn: '#FC5531', weibo: '#E6162D', douyin: '#FE2C55',
 }
 
 const STATUS_PHASE = {
@@ -18,58 +22,64 @@ const STATUS_PHASE = {
   blocked:                4,
 }
 
-/* ── tiny helpers ───────────────────────────────────────────── */
-function Spinner({ size = 14, color = '#c8f55a' }) {
+/* ── Spinner ─────────────────────────────────────────────── */
+function Spinner({ size = 14 }) {
   return (
     <span style={{
       width: size, height: size, borderRadius: '50%', flexShrink: 0,
-      border: `2px solid ${color}`, borderTopColor: 'transparent',
+      border: '2px solid rgba(123,110,246,0.3)', borderTopColor: 'var(--accent)',
       display: 'inline-block', animation: 'spin 0.75s linear infinite',
     }} />
   )
 }
 
+/* ── StepDot ─────────────────────────────────────────────── */
 function StepDot({ n, active, done }) {
-  const bg = done ? '#69db7c' : active ? '#c8f55a' : '#1e1e24'
-  const cl = done || active ? '#0a0a0c' : '#555'
+  const color = done ? 'var(--green)' : active ? 'var(--accent)' : 'var(--text-3)'
   return (
     <div style={{
       width: 26, height: 26, borderRadius: '50%',
-      background: bg, color: cl,
+      background: done ? 'rgba(52,211,153,0.15)' : active ? 'rgba(123,110,246,0.15)' : 'transparent',
+      border: `2px solid ${done ? 'var(--green)' : active ? 'var(--accent)' : 'var(--border)'}`,
+      color,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 12, fontWeight: 700, flexShrink: 0,
-      transition: 'background 0.3s',
+      fontSize: 11, fontWeight: 700, flexShrink: 0,
+      transition: 'all 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+      boxShadow: active ? '0 0 12px rgba(123,110,246,0.35)' : done ? '0 0 8px rgba(52,211,153,0.2)' : 'none',
     }}>
-      {done ? '✓' : n}
+      {done ? <span style={{ animation: 'checkIn .3s ease' }}>✓</span> : n}
     </div>
   )
 }
 
 const STEPS = ['登录检测', '内容填写', '预览确认', '发布完成']
 
+/* ── Stepper ─────────────────────────────────────────────── */
 function Stepper({ phase }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 22 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 18 }}>
       {STEPS.map((label, i) => {
-        const n     = i + 1
-        const done  = phase > n
+        const n      = i + 1
+        const done   = phase > n
         const active = phase === n
         return (
           <div key={n} style={{ display: 'flex', alignItems: 'center', flex: n < 4 ? 1 : 0 }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
               <StepDot n={n} active={active} done={done} />
               <span style={{
-                fontSize: 10,
-                color: done ? '#69db7c' : active ? '#c8f55a' : '#333',
-                whiteSpace: 'nowrap',
+                fontSize: 10, whiteSpace: 'nowrap',
+                color: done ? 'var(--green)' : active ? 'var(--accent)' : 'var(--text-3)',
+                fontFamily: 'var(--font-mono)',
+                transition: 'color 0.3s',
               }}>
                 {label}
               </span>
             </div>
             {n < 4 && (
               <div style={{
-                flex: 1, height: 1, margin: '0 4px', marginBottom: 14,
-                background: done ? '#69db7c44' : '#1e1e24',
+                flex: 1, height: 2, margin: '0 4px', marginBottom: 14,
+                background: done ? 'rgba(52,211,153,0.25)' : 'var(--border)',
+                borderRadius: 1,
                 transition: 'background 0.4s',
               }} />
             )}
@@ -80,29 +90,29 @@ function Stepper({ phase }) {
   )
 }
 
-/* ── per-platform status badge ──────────────────────────────── */
+/* ── StatusBadge ─────────────────────────────────────────── */
 function StatusBadge({ status }) {
   const cfg = {
-    logging_in:             { label: '登录检测中',   color: '#c8f55a', spin: true  },
-    navigating:             { label: '打开编辑器',   color: '#c8f55a', spin: true  },
-    filling:                { label: '填写内容',     color: '#c8f55a', spin: true  },
-    awaiting_final_confirm: { label: '等待确认',     color: '#ffa94d', spin: false },
-    publishing:             { label: '发布中',       color: '#c8f55a', spin: true  },
-    success:                { label: '发布成功 ✓',   color: '#69db7c', spin: false },
-    failed:                 { label: '失败',         color: '#ff6b6b', spin: false },
-    blocked:                { label: '已跳过',       color: '#555',    spin: false },
-    pending:                { label: '等待中',       color: '#444',    spin: false },
-  }[status] ?? { label: status, color: '#555', spin: false }
+    logging_in:             { label: '登录检测中', color: 'var(--accent)',  spin: true  },
+    navigating:             { label: '打开编辑器', color: 'var(--accent)',  spin: true  },
+    filling:                { label: '填写内容',   color: 'var(--accent)',  spin: true  },
+    awaiting_final_confirm: { label: '等待确认',   color: 'var(--orange)', spin: false },
+    publishing:             { label: '发布中',     color: 'var(--accent)',  spin: true  },
+    success:                { label: '发布成功 ✓', color: 'var(--green)',  spin: false },
+    failed:                 { label: '失败',       color: 'var(--red)',    spin: false },
+    blocked:                { label: '已跳过',     color: 'var(--text-3)', spin: false },
+    pending:                { label: '等待中',     color: 'var(--text-3)', spin: false },
+  }[status] ?? { label: status, color: 'var(--text-3)', spin: false }
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-      {cfg.spin && <Spinner size={11} color={cfg.color} />}
-      <span style={{ fontSize: 11, color: cfg.color }}>{cfg.label}</span>
+      {cfg.spin && <Spinner size={11} />}
+      <span style={{ fontSize: 11, color: cfg.color, fontWeight: 500 }}>{cfg.label}</span>
     </div>
   )
 }
 
-/* ── log pane ───────────────────────────────────────────────── */
+/* ── LogPane ─────────────────────────────────────────────── */
 function LogPane({ logs }) {
   const ref = useRef(null)
   useEffect(() => {
@@ -111,21 +121,35 @@ function LogPane({ logs }) {
 
   if (!logs?.length) return null
   return (
-    <div
-      ref={ref}
-      style={{
-        background: '#0d0d0f', border: '1px solid #1a1a1e',
-        borderRadius: 7, padding: '10px 12px',
-        maxHeight: 160, overflow: 'auto',
-        fontSize: 11, color: '#555', lineHeight: 1.7,
-        fontFamily: 'monospace',
-      }}
-    >
+    <div ref={ref} style={{
+      background: 'rgba(0,0,0,0.3)',
+      border: '1px solid var(--border)',
+      borderRadius: 'var(--r-md)', padding: '10px 12px',
+      maxHeight: 160, overflow: 'auto',
+    }}>
+      {/* Terminal header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 5,
+        marginBottom: 7, paddingBottom: 6,
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
+      }}>
+        {['var(--red)', 'var(--orange)', 'var(--green)'].map((c, i) => (
+          <span key={i} style={{
+            width: 7, height: 7, borderRadius: '50%',
+            background: c, opacity: 0.5,
+          }} />
+        ))}
+        <span style={{ fontSize: 9, color: 'var(--text-3)', marginLeft: 4, letterSpacing: '0.08em', fontFamily: 'var(--font-mono)' }}>
+          LOG
+        </span>
+      </div>
       {logs.map((l, i) => (
         <div key={i} style={{
-          color: l.includes('✓') ? '#69db7c'
-               : l.includes('失败') ? '#ff6b6b'
-               : '#555',
+          fontSize: 11, lineHeight: 1.7,
+          fontFamily: 'var(--font-mono)',
+          color: l.includes('✓') ? 'var(--green)'
+               : l.includes('失败') ? 'var(--red)'
+               : 'var(--text-3)',
         }}>
           {l}
         </div>
@@ -134,15 +158,15 @@ function LogPane({ logs }) {
   )
 }
 
-/* ── preview card for one platform ─────────────────────────── */
-function PreviewCard({ platform, result, taskId, onConfirmed }) {
-  const status   = result?.status ?? 'pending'
-  const pname    = PNAMES[platform] ?? platform
+/* ── PreviewCard ─────────────────────────────────────────── */
+function PreviewCard({ platform, result, taskId, onConfirmed, index }) {
+  const status    = result?.status ?? 'pending'
+  const pname     = PNAMES[platform] ?? platform
+  const pcolor    = PLATFORM_COLORS[platform] ?? 'var(--accent)'
   const confirmed = result?.final_confirmed
-  const shot     = result?.preview_screenshot
-  const errShot  = result?.error_screenshot
-  const sucShot  = result?.success_screenshot
-
+  const shot      = result?.preview_screenshot
+  const errShot   = result?.error_screenshot
+  const sucShot   = result?.success_screenshot
   const displayShot = sucShot || (status === 'failed' ? errShot : shot)
 
   async function handleConfirm() {
@@ -150,80 +174,111 @@ function PreviewCard({ platform, result, taskId, onConfirmed }) {
     if (onConfirmed) onConfirmed(platform)
   }
 
+  const borderColor = status === 'success' ? 'rgba(52,211,153,0.2)'
+    : status === 'failed' ? 'rgba(248,113,113,0.2)'
+    : status === 'awaiting_final_confirm' ? 'rgba(251,191,36,0.2)'
+    : 'var(--border)'
+
   return (
-    <div style={{
-      background: '#16161a',
-      border: `1px solid ${
-        status === 'success' ? '#69db7c33'
-        : status === 'failed' ? '#ff6b6b33'
-        : status === 'awaiting_final_confirm' ? '#ffa94d44'
-        : '#1e1e24'
-      }`,
-      borderRadius: 10, padding: '14px',
+    <div className="glass-panel" style={{
+      padding: 14,
       display: 'flex', flexDirection: 'column', gap: 10,
+      border: `1px solid ${borderColor}`,
+      animation: `fadeUp .25s ease ${(index ?? 0) * 60}ms both`,
+      transition: 'border-color 0.3s',
+      position: 'relative', overflow: 'hidden',
     }}>
-      {/* header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 13, color: '#ccc', fontWeight: 500 }}>{pname}</span>
+      {/* Left color bar */}
+      <div style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
+        background: status === 'success' ? 'var(--green)'
+          : status === 'failed' ? 'var(--red)'
+          : status === 'awaiting_final_confirm' ? 'var(--orange)'
+          : pcolor,
+        transition: 'background 0.3s',
+      }} />
+
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%',
+            background: pcolor, flexShrink: 0,
+          }} />
+          <span style={{ fontSize: 13, color: 'var(--text-1)', fontWeight: 600 }}>{pname}</span>
+        </div>
         <StatusBadge status={status} />
       </div>
 
-      {/* screenshot */}
+      {/* Screenshot */}
       {displayShot && (
         <img
           src={`data:image/png;base64,${displayShot}`}
           alt={`${pname} preview`}
           style={{
-            width: '100%', borderRadius: 6,
-            border: '1px solid #2a2a30',
+            width: '100%', borderRadius: 'var(--r-sm)',
+            border: '1px solid var(--border)',
             maxHeight: 300, objectFit: 'contain',
           }}
         />
       )}
 
-      {/* error message */}
+      {/* Error message */}
       {status === 'failed' && result?.error && (
         <div style={{
-          fontSize: 11, color: '#ff6b6b',
-          background: 'rgba(255,107,107,0.07)',
-          borderRadius: 6, padding: '7px 10px',
+          fontSize: 11, color: 'var(--red)',
+          background: 'rgba(248,113,113,0.06)',
+          border: '1px solid rgba(248,113,113,0.15)',
+          borderRadius: 'var(--r-sm)', padding: '7px 10px',
+          wordBreak: 'break-all', lineHeight: 1.5,
         }}>
           {result.error}
         </div>
       )}
 
-      {/* confirm button */}
+      {/* Confirm button */}
       {status === 'awaiting_final_confirm' && !confirmed && (
         <button
           onClick={handleConfirm}
           style={{
-            width: '100%', padding: '9px 0', borderRadius: 7, border: 'none',
-            background: '#69db7c', color: '#061006',
-            fontWeight: 600, fontSize: 13, cursor: 'pointer',
-            transition: 'opacity 0.15s',
+            width: '100%', padding: '10px 0', borderRadius: 'var(--r-md)', border: 'none',
+            background: 'linear-gradient(135deg, var(--green), rgba(52,211,153,0.8))',
+            color: '#041a0c',
+            fontWeight: 700, fontSize: 13, cursor: 'pointer',
+            transition: 'all .2s',
+            boxShadow: '0 4px 16px rgba(52,211,153,0.25)',
           }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'translateY(-1px)'
+            e.currentTarget.style.boxShadow = '0 6px 24px rgba(52,211,153,0.4)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'none'
+            e.currentTarget.style.boxShadow = '0 4px 16px rgba(52,211,153,0.25)'
+          }}
         >
           ✓ 确认发布到{pname}
         </button>
       )}
       {status === 'awaiting_final_confirm' && confirmed && (
-        <div style={{ textAlign: 'center', fontSize: 12, color: '#c8f55a' }}>
-          <Spinner size={12} /> &nbsp;已确认，发布中...
+        <div style={{
+          textAlign: 'center', fontSize: 12, color: 'var(--accent)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        }}>
+          <Spinner size={12} />
+          已确认，发布中...
         </div>
       )}
     </div>
   )
 }
 
-/* ══ main component ════════════════════════════════════════════ */
+/* ══ Main component ════════════════════════════════════════ */
 export default function PublishFlow({ taskId, taskData, onConfirmedAll }) {
   const results  = taskData?.adapted_results ?? {}
   const logs     = taskData?.execution_log   ?? []
   const platforms = Object.keys(results)
 
-  /* Derive current global phase from all platform statuses */
   const allStatuses = platforms.map(p => results[p]?.status ?? 'pending')
 
   function globalPhase() {
@@ -237,12 +292,10 @@ export default function PublishFlow({ taskId, taskData, onConfirmedAll }) {
 
   const phase = globalPhase()
 
-  /* Count finished */
   const successCount = allStatuses.filter(s => s === 'success').length
   const totalCount   = platforms.length
   const allDone      = allStatuses.every(s => ['success', 'failed', 'blocked'].includes(s))
 
-  /* Which platforms are awaiting final confirm */
   const awaitingPlatforms = platforms.filter(
     p => results[p]?.status === 'awaiting_final_confirm' && !results[p]?.final_confirmed
   )
@@ -252,6 +305,15 @@ export default function PublishFlow({ taskId, taskData, onConfirmedAll }) {
     if (onConfirmedAll) onConfirmedAll()
   }
 
+  const phaseLabels = {
+    1: '正在检测各平台登录状态...',
+    2: '浏览器自动填写内容中，请勿关闭弹出窗口',
+    3: '内容已就绪，请逐一确认发布',
+    4: allDone
+      ? `已完成：${successCount}/${totalCount} 个平台发布成功`
+      : '正在发布中...',
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -259,27 +321,40 @@ export default function PublishFlow({ taskId, taskData, onConfirmedAll }) {
       <Stepper phase={phase} />
 
       {/* Phase label */}
-      <div style={{ fontSize: 13, color: '#777', marginTop: -8 }}>
-        {phase === 1 && '正在检测各平台登录状态...'}
-        {phase === 2 && '浏览器自动填写内容中，请勿关闭弹出窗口'}
-        {phase === 3 && '内容已就绪，请逐一确认发布'}
-        {phase === 4 && (allDone
-          ? `已完成：${successCount}/${totalCount} 个平台发布成功`
-          : '正在发布中...')}
+      <div style={{
+        fontSize: 12, color: 'var(--text-3)', marginTop: -8,
+        display: 'flex', alignItems: 'center', gap: 6,
+      }}>
+        {(phase === 1 || phase === 2) && (
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%',
+            background: 'var(--accent)', display: 'inline-block',
+            animation: 'pulse 1s infinite',
+          }} />
+        )}
+        {phaseLabels[phase]}
       </div>
 
-      {/* Confirm-all button (phase 3 only, when multiple platforms await) */}
+      {/* Confirm-all button */}
       {phase === 3 && awaitingPlatforms.length > 1 && (
         <button
           onClick={handleConfirmAll}
           style={{
-            width: '100%', padding: '10px 0', borderRadius: 8, border: 'none',
-            background: '#69db7c', color: '#061006',
+            width: '100%', padding: '11px 0', borderRadius: 'var(--r-md)', border: 'none',
+            background: 'linear-gradient(135deg, var(--green), rgba(52,211,153,0.8))',
+            color: '#041a0c',
             fontWeight: 700, fontSize: 14, cursor: 'pointer',
-            transition: 'opacity 0.15s',
+            transition: 'all .2s',
+            boxShadow: '0 4px 16px rgba(52,211,153,0.25)',
           }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'translateY(-2px)'
+            e.currentTarget.style.boxShadow = '0 8px 28px rgba(52,211,153,0.4)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'none'
+            e.currentTarget.style.boxShadow = '0 4px 16px rgba(52,211,153,0.25)'
+          }}
         >
           ✓ 全部确认发布（{awaitingPlatforms.length} 个平台）
         </button>
@@ -287,13 +362,14 @@ export default function PublishFlow({ taskId, taskData, onConfirmedAll }) {
 
       {/* Per-platform cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {platforms.map(pid => (
+        {platforms.map((pid, i) => (
           <PreviewCard
             key={pid}
             platform={pid}
             result={results[pid]}
             taskId={taskId}
-            onConfirmed={() => {}} // local state handled by poll
+            index={i}
+            onConfirmed={() => {}}
           />
         ))}
       </div>
@@ -304,14 +380,19 @@ export default function PublishFlow({ taskId, taskData, onConfirmedAll }) {
       {/* Final summary */}
       {allDone && successCount > 0 && (
         <div style={{
-          background: 'rgba(105,219,124,0.07)',
-          border: '1px solid rgba(105,219,124,0.2)',
-          borderRadius: 10, padding: '14px 18px',
-          fontSize: 13, color: '#69db7c',
+          background: 'rgba(52,211,153,0.06)',
+          border: '1px solid rgba(52,211,153,0.2)',
+          borderRadius: 'var(--r-md)', padding: '14px 18px',
+          fontSize: 13, color: 'var(--green)',
           textAlign: 'center',
+          animation: 'fadeUp .4s cubic-bezier(0.34,1.56,0.64,1)',
         }}>
           🎉 已成功发布至 {successCount} 个平台
-          {successCount < totalCount && `（${totalCount - successCount} 个失败）`}
+          {successCount < totalCount && (
+            <span style={{ color: 'var(--text-3)', marginLeft: 6 }}>
+              （{totalCount - successCount} 个失败）
+            </span>
+          )}
         </div>
       )}
     </div>
