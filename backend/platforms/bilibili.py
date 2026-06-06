@@ -113,7 +113,39 @@ class BilibiliAdapter(PlatformAdapter):
                 f"B站找不到标题输入框。可见元素={debug_els} URL={page.url}"
             )
 
-        await title_input.click()
+        # ── Click title input with fallback strategies ─────────────────────
+        # The element may be temporarily covered by an overlay/animation after
+        # page load, so we: scroll it into view, wait briefly, try force-click,
+        # and fall back to a JS click if Playwright still can't reach it.
+        await title_input.scroll_into_view_if_needed()
+        await asyncio.sleep(0.8)   # let page settle / overlays dismiss
+
+        clicked = False
+        try:
+            await title_input.click(timeout=8000)
+            clicked = True
+        except Exception:
+            pass
+
+        if not clicked:
+            # force=True bypasses Playwright's actionability checks
+            try:
+                await title_input.click(force=True, timeout=5000)
+                clicked = True
+            except Exception:
+                pass
+
+        if not clicked:
+            # Last resort: JS click directly on the DOM element
+            try:
+                await page.evaluate("""(sel) => {
+                    const el = document.querySelector(sel);
+                    if (el) { el.focus(); el.click(); }
+                }""", 'input[placeholder*="标题"], input[class*="title"], input[type="text"]')
+                await asyncio.sleep(0.3)
+            except Exception:
+                pass
+
         await title_input.fill("")
         await page.keyboard.type(title, delay=30)
         await asyncio.sleep(0.3)
@@ -153,7 +185,42 @@ class BilibiliAdapter(PlatformAdapter):
         if await confirm_btn.count() > 0:
             await confirm_btn.first.click()
 
-        await page.wait_for_selector(
-            '[class*="success"], text=发布成功, [class*="toast"]:has-text("成功")',
-            timeout=15000,
-        )
+        # 主检测：轮询 URL 是否离开编辑器（最多 25 秒）
+        url_before = page.url
+        publish_done = False
+
+        for _ in range(50):
+            await asyncio.sleep(0.5)
+            cur = page.url
+            if (cur != url_before
+                    and "edit" not in cur
+                    and "upload" not in cur
+                    and "login" not in cur):
+                print(f"[bilibili] ✓ 发布后已跳转至 {cur}", flush=True)
+                publish_done = True
+                break
+            try:
+                found = await page.locator(
+                    '[class*="success"], '
+                    '[class*="toast"]:has-text("成功"), '
+                    '[class*="toast"]:has-text("发布")'
+                ).first.is_visible()
+                if found:
+                    publish_done = True
+                    break
+            except Exception:
+                pass
+
+        if not publish_done:
+            try:
+                has_text = await page.evaluate("""() => {
+                    const t = document.body.innerText || '';
+                    return t.includes('发布成功') || t.includes('已发布') || t.includes('审核中');
+                }""")
+                if has_text:
+                    publish_done = True
+            except Exception:
+                pass
+
+        if not publish_done:
+            raise Exception("发布后 25 秒内未检测到跳转或成功提示，请手动确认")

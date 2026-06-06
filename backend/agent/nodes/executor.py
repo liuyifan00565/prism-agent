@@ -174,7 +174,12 @@ async def run(state: AgentState, platform: str, task_id: str = "") -> AgentState
         body = compliance["auto_fixed_text"]
 
     browser = await get_browser()
-    context = await browser.new_context(viewport={"width": 1280, "height": 800})
+    context = await browser.new_context(
+        viewport={"width": 1280, "height": 800},
+        # Pre-deny browser-level permission requests (geolocation, notifications, etc.)
+        # so Chrome never shows a permission popup that would block page interactivity.
+        permissions=[],
+    )
     page    = await context.new_page()
 
     try:
@@ -224,6 +229,12 @@ async def run(state: AgentState, platform: str, task_id: str = "") -> AgentState
         result["status"] = "publishing"
         state["execution_log"].append(f"[{platform}] 开始发布...")
 
+        # 小红书特有：长文有排版模板选择步骤，Agent 根据文章内容自动选择，无需用户干预
+        if platform == "xiaohongshu":
+            state["execution_log"].append(
+                f"[{platform}] ✦ Agent 将根据文章内容自动选择排版模板"
+            )
+
         # Build the human-in-the-loop assist callback for this task/platform.
         # Pass `page` so the assist_fn can auto-resume on browser clicks.
         assist_fn = _make_assist_fn(task_id, platform, result, state, page=page)
@@ -247,9 +258,10 @@ async def run(state: AgentState, platform: str, task_id: str = "") -> AgentState
             on_retry=on_retry,
         )
 
-        # ── Step 7: Success screenshot for evidence ───────────
+        # ── Step 7: Success screenshot + content URL ──────────
         final_shot = await page.screenshot(full_page=False)
         result["success_screenshot"] = base64.b64encode(final_shot).decode()
+        result["content_url"] = page.url   # 用于后续数据看板抓取
         result["status"] = "success"
         state["execution_log"].append(f"[{platform}] 发布成功 ✓")
 

@@ -460,6 +460,7 @@ class ScheduleRequest(BaseModel):
 async def start_scheduler():
     asyncio.create_task(scheduler_loop(tasks))
     asyncio.create_task(_auto_save_loop())
+    asyncio.create_task(audit_loop())   # 审核状态追踪后台协程
 
 
 async def _auto_save_loop():
@@ -491,6 +492,16 @@ from history.store  import (save_record, get_all as _hist_get_all,
                              get_stats  as _hist_get_stats,
                              delete_record as _hist_delete)
 from history.models import PublishRecord
+
+# ── Audit tracker ─────────────────────────────────────────────────────────────
+
+from audit.tracker import (
+    audit_loop,
+    add_audit_task,
+    get_by_record  as _audit_by_record,
+    get_summary    as _audit_summary,
+    mark_results_seen as _audit_mark_seen,
+)
 
 
 # ── Templates ─────────────────────────────────────────────────────────────────
@@ -577,6 +588,7 @@ async def _save_history(task_id: str):
                 "adapted_body":  r.get("adapted_body",  ""),
                 "tags":          r.get("tags", []),
                 "error":         r.get("error"),
+                "content_url":   r.get("content_url"),   # 发布成功后的页面URL，供数据看板使用
             }
             for pid, r in results.items()
         },
@@ -586,6 +598,19 @@ async def _save_history(task_id: str):
         blocked_count   = sum(1 for r in results.values() if r.get("status") == "blocked"),
     )
     save_record(record)
+
+    # 为每个发布成功的平台注册审核追踪任务
+    title = s.get("original_title", "") or ""
+    for pid, r in results.items():
+        if r.get("status") == "success":
+            try:
+                add_audit_task(
+                    record_id=record.id,
+                    platform=pid,
+                    title=title,
+                )
+            except Exception:
+                pass   # 审核注册失败不阻断历史保存
 
 
 def _all_terminal(state: dict) -> bool:
@@ -657,6 +682,49 @@ async def get_history(record_id: str):
 @app.delete("/api/history/{record_id}")
 async def delete_history(record_id: str):
     return {"ok": _hist_delete(record_id)}
+
+
+# ── Audit API ─────────────────────────────────────────────────────────────────
+
+@app.get("/api/audit/summary")
+async def get_audit_summary():
+    """获取所有平台的审核状态汇总（用于首页通知角标）。"""
+    return _audit_summary()
+
+
+@app.get("/api/audit/{record_id}")
+async def get_audit_by_record(record_id: str):
+    """获取某次发布的所有平台审核状态。"""
+    return {"tasks": _audit_by_record(record_id)}
+
+
+@app.post("/api/audit/mark-seen")
+async def mark_audit_seen():
+    """用户点开通知面板后清除新结果角标。"""
+    _audit_mark_seen()
+    return {"ok": True}
+
+
+# ── Analytics API ─────────────────────────────────────────────────────────────
+
+from analytics.fetcher import fetch_record_analytics
+
+
+@app.get("/api/analytics/{record_id}")
+async def get_analytics(record_id: str):
+    """
+    获取某次发布各平台的最新互动数据（点赞/评论/收藏/阅读/转发）。
+    通过 Playwright 截图 + VLM 识别，约 10-30 秒，前端需显示 loading。
+    建议每次手动触发，不做自动轮询（避免触发平台风控）。
+    """
+    record = _hist_get_by_id(record_id)
+    if not record:
+        return {"error": "not found"}
+    try:
+        analytics = await fetch_record_analytics(record)
+        return {"analytics": analytics, "record_id": record_id}
+    except Exception as e:
+        return {"error": str(e), "analytics": {}}
 
 
 async def _run(task_id, state, config):
